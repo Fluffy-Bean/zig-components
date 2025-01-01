@@ -218,7 +218,8 @@ pub const Slider = struct {
     }
 };
 
-const SwitchAnimationTime: f32 = 0.15;
+const switch_animation_length: f32 = 0.25;
+const switch_animation_ease: easing.Eases = .expoIn;
 
 pub const Switch = struct {
     bounds: c.Rectangle,
@@ -233,13 +234,17 @@ pub const Switch = struct {
     _selected: bool,
     _require_recalculation: bool,
 
-    _animation: ?easing.Animate,
+    _animation: easing.Animate,
 
     pub fn new(
         bounds: c.Rectangle,
         background: c.Color,
         foreground: c.Color,
     ) Switch {
+        // ToDo: Make some sane default, instead of this monstrosity to avoid checking for nulls first
+        var animation = easing.Animate.new(0, 0, 0, switch_animation_ease);
+        animation.animating = false;
+
         return Switch{
             .bounds = bounds,
             .background = background,
@@ -253,7 +258,7 @@ pub const Switch = struct {
             ._selected = false,
             ._require_recalculation = true,
 
-            ._animation = null,
+            ._animation = animation,
         };
     }
 
@@ -263,9 +268,9 @@ pub const Switch = struct {
         if (self._require_recalculation) {
             var offset_x: f32 = self.bounds.width - (self._handle_radius * 2);
 
-            if (if (self._animation != null) self._animation.?.animating else false) {
-                self._animation.?.update();
-                offset_x *= self._animation.?.progress;
+            if (self._animation.animating) {
+                self._animation.update();
+                offset_x *= self._animation.progress;
             } else {
                 offset_x *= if (self.toggled) 1 else 0;
             }
@@ -277,7 +282,7 @@ pub const Switch = struct {
             };
         }
 
-        self._require_recalculation = c.IsWindowResized() or (if (self._animation != null) self._animation.?.animating else false);
+        self._require_recalculation = c.IsWindowResized() or self._animation.animating;
         self._hovered = c.CheckCollisionPointRec(c.GetMousePosition(), self.bounds);
         self._selected = guiLock and checkGuiLockID(self);
 
@@ -287,10 +292,10 @@ pub const Switch = struct {
                 // Maybe the user moved their cursor off of the switch....
                 if (self._hovered) {
                     if (self.toggled) {
-                        self._animation = easing.Animate.new(1, 0, SwitchAnimationTime, .quadIn);
+                        self._animation = easing.Animate.new(1, 0, switch_animation_length, switch_animation_ease);
                         self.toggled = false;
                     } else {
-                        self._animation = easing.Animate.new(0, 1, SwitchAnimationTime, .quadIn);
+                        self._animation = easing.Animate.new(0, 1, switch_animation_length, switch_animation_ease);
                         self.toggled = true;
                     }
                     self._require_recalculation = true;
