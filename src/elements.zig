@@ -2,10 +2,12 @@ const math = @import("std").math;
 const easing = @import("easing.zig");
 const c = @import("c.zig").c;
 
+pub var debugRender: bool = false;
+
 var guiLock: bool = false;
 var guiLockID: ?*anyopaque = null;
 
-fn checkLockID(element: *anyopaque) bool {
+fn checkGuiLockID(element: *anyopaque) bool {
     return guiLockID == element;
 }
 
@@ -56,10 +58,10 @@ pub const Button = struct {
 
         self._require_recalculation = c.IsWindowResized();
         self._hovered = c.CheckCollisionPointRec(c.GetMousePosition(), self.bounds);
-        self._selected = guiLock and checkLockID(self);
+        self._selected = guiLock and checkGuiLockID(self);
 
         if (guiLock) {
-            if (!checkLockID(self)) return;
+            if (!checkGuiLockID(self)) return;
             if (c.IsMouseButtonReleased(c.MOUSE_BUTTON_LEFT)) {
                 // Maybe the user moved their cursor off of the button....
                 if (self._hovered) self.on_click();
@@ -88,6 +90,16 @@ pub const Button = struct {
             10,
             self.foreground,
         );
+
+        if (self._require_recalculation and debugRender) {
+            c.DrawRectangleLines(
+                @intFromFloat(self.bounds.x - 3),
+                @intFromFloat(self.bounds.y - 3),
+                @intFromFloat(self.bounds.width + 6),
+                @intFromFloat(self.bounds.height + 6),
+                c.GREEN,
+            );
+        }
     }
 };
 
@@ -161,10 +173,10 @@ pub const Slider = struct {
 
         self._require_recalculation = c.IsWindowResized();
         self._hovered = c.CheckCollisionPointRec(c.GetMousePosition(), self.bounds);
-        self._selected = guiLock and checkLockID(self);
+        self._selected = guiLock and checkGuiLockID(self);
 
         if (guiLock) {
-            if (!checkLockID(self)) return;
+            if (!checkGuiLockID(self)) return;
             if (c.IsMouseButtonDown(c.MOUSE_BUTTON_LEFT)) {
                 self._require_recalculation = true;
                 self.value = self.max * ((c.GetMousePosition().x - self.bounds.x) / self.bounds.width);
@@ -193,6 +205,16 @@ pub const Slider = struct {
             c.DrawRectangleRounded(self._track_bounds, 1, 5, c.Fade(c.WHITE, 0.1));
         }
         c.DrawRectangleRounded(self._handle_bounds, 1, 5, self.handle_color);
+
+        if (self._require_recalculation and debugRender) {
+            c.DrawRectangleLines(
+                @intFromFloat(self.bounds.x - 3),
+                @intFromFloat(self.bounds.y - 3),
+                @intFromFloat(self.bounds.width + 6),
+                @intFromFloat(self.bounds.height + 6),
+                c.GREEN,
+            );
+        }
     }
 };
 
@@ -211,8 +233,7 @@ pub const Switch = struct {
     _selected: bool,
     _require_recalculation: bool,
 
-    _animation_progress: f32,
-    _animation_stage: enum { ToOn, ToOff, Done },
+    _animation: ?easing.Animate,
 
     pub fn new(
         bounds: c.Rectangle,
@@ -232,8 +253,7 @@ pub const Switch = struct {
             ._selected = false,
             ._require_recalculation = true,
 
-            ._animation_progress = 0,
-            ._animation_stage = .ToOff,
+            ._animation = null,
         };
     }
 
@@ -241,49 +261,36 @@ pub const Switch = struct {
         self: *Switch,
     ) void {
         if (self._require_recalculation) {
-            const handle_offset: f32 = 6;
-            const handle_x_on: f32 = self.bounds.width - handle_offset - self._handle_radius;
-            const handle_x_off: f32 = handle_offset + self._handle_radius;
+            var offset_x: f32 = self.bounds.width - (self._handle_radius * 2);
 
-            var offset_x: f32 = 0;
-
-            if (self._animation_stage != .Done) {
-                self._animation_progress += c.GetFrameTime();
-
-                if (self._animation_stage == .ToOn) offset_x  = easing.EaseQuadOut(handle_x_off, handle_x_on, self._animation_progress / SwitchAnimationTime);
-                if (self._animation_stage == .ToOff) offset_x  = easing.EaseQuadOut(handle_x_on, handle_x_off, self._animation_progress / SwitchAnimationTime);
-
-                if (self._animation_progress >= SwitchAnimationTime) {
-                    self._animation_progress = 0;
-                    self._animation_progress = 0;
-                    self._animation_stage = .Done;
-                }
+            if (if (self._animation != null) self._animation.?.animating else false) {
+                self._animation.?.update();
+                offset_x *= self._animation.?.progress;
             } else {
-                if (self.toggled) offset_x = handle_x_on
-                else offset_x = handle_x_off;
+                offset_x *= if (self.toggled) 1 else 0;
             }
 
-            self._handle_radius = (self.bounds.height/2) - handle_offset;
+            self._handle_radius = (self.bounds.height/2);
             self._handle_bounds = c.Vector2{
-                .x = self.bounds.x + offset_x,
-                .y = self.bounds.y + self._handle_radius + handle_offset,
+                .x = self.bounds.x + self._handle_radius + offset_x,
+                .y = self.bounds.y + self._handle_radius,
             };
         }
 
-        self._require_recalculation = c.IsWindowResized() or self._animation_stage != .Done;
+        self._require_recalculation = c.IsWindowResized() or (if (self._animation != null) self._animation.?.animating else false);
         self._hovered = c.CheckCollisionPointRec(c.GetMousePosition(), self.bounds);
-        self._selected = guiLock and checkLockID(self);
+        self._selected = guiLock and checkGuiLockID(self);
 
         if (guiLock) {
-            if (!checkLockID(self)) return;
+            if (!checkGuiLockID(self)) return;
             if (c.IsMouseButtonReleased(c.MOUSE_BUTTON_LEFT)) {
                 // Maybe the user moved their cursor off of the switch....
                 if (self._hovered) {
                     if (self.toggled) {
-                        self._animation_stage = .ToOff;
+                        self._animation = easing.Animate.new(1, 0, SwitchAnimationTime, .quadIn);
                         self.toggled = false;
                     } else {
-                        self._animation_stage = .ToOn;
+                        self._animation = easing.Animate.new(0, 1, SwitchAnimationTime, .quadIn);
                         self.toggled = true;
                     }
                     self._require_recalculation = true;
@@ -306,6 +313,16 @@ pub const Switch = struct {
         if ((self._hovered and !guiLock) or self._selected) {
             c.DrawCircle(@intFromFloat(self._handle_bounds.x), @intFromFloat(self._handle_bounds.y), (self.bounds.height/2)+4, c.Fade(c.WHITE, 0.1));
         }
-        c.DrawCircle(@intFromFloat(self._handle_bounds.x), @intFromFloat(self._handle_bounds.y), self._handle_radius, self.foreground);
+        c.DrawCircle(@intFromFloat(self._handle_bounds.x), @intFromFloat(self._handle_bounds.y), self._handle_radius - 6, self.foreground);
+
+        if (self._require_recalculation and debugRender) {
+            c.DrawRectangleLines(
+                @intFromFloat(self.bounds.x - 3),
+                @intFromFloat(self.bounds.y - 3),
+                @intFromFloat(self.bounds.width + 6),
+                @intFromFloat(self.bounds.height + 6),
+                c.GREEN,
+            );
+        }
     }
 };
