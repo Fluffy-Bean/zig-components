@@ -28,7 +28,7 @@ pub const Switch = struct {
         gui_t: *gui,
     ) Switch {
         // ToDo: Make some sane default, instead of this monstrosity to avoid checking for nulls first
-        var animation = easing.Animate.Newq(0, 0, 0, AnimationEase);
+        var animation = easing.Animate.New(0, 0, 0, AnimationEase);
         animation.animating = false;
 
         return Switch{
@@ -77,10 +77,10 @@ pub const Switch = struct {
                 // Maybe the user moved their cursor off of the switch....
                 if (self._hovered) {
                     if (self.toggled) {
-                        self._animation = easing.Animate.Newq(1, 0, AnimationLength, AnimationEase);
+                        self._animation = easing.Animate.New(1, 0, AnimationLength, AnimationEase);
                         self.toggled = false;
                     } else {
-                        self._animation = easing.Animate.Newq(0, 1, AnimationLength, AnimationEase);
+                        self._animation = easing.Animate.New(0, 1, AnimationLength, AnimationEase);
                         self.toggled = true;
                     }
                     self._require_recalculation = true;
@@ -116,25 +116,19 @@ pub const Switch = struct {
                 @intFromFloat(self._handle_bounds.x),
                 @intFromFloat(self._handle_bounds.y),
                 (self.bounds.height/2)+4,
-                c.Fade(c.WHITE, 0.1),
+                c.Fade(c.WHITE, 0.05),
             );
         }
 
         c.DrawCircle(
             @intFromFloat(self._handle_bounds.x),
             @intFromFloat(self._handle_bounds.y),
-            self._handle_radius - 6,
-            theme.ColorSurfaceHigh,
+            if (self.toggled) self._handle_radius - 2 else self._handle_radius - 6,
+            if (self.toggled) theme.ColorSurface else theme.ColorSurfaceHigh,
         );
 
         if (self._require_recalculation and self._gui.debug) {
-            c.DrawRectangleLines(
-                @intFromFloat(self.bounds.x - 3),
-                @intFromFloat(self.bounds.y - 3),
-                @intFromFloat(self.bounds.width + 6),
-                @intFromFloat(self.bounds.height + 6),
-                c.GREEN,
-            );
+            @import("gui.zig").DebugDraw(self.bounds);
         }
     }
 };

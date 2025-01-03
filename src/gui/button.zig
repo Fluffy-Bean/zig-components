@@ -85,13 +85,7 @@ pub const Button = struct {
         }
 
         if (self._require_recalculation and self._gui.debug) {
-            c.DrawRectangleLines(
-                @intFromFloat(self.bounds.x - 3),
-                @intFromFloat(self.bounds.y - 3),
-                @intFromFloat(self.bounds.width + 6),
-                @intFromFloat(self.bounds.height + 6),
-                c.GREEN,
-            );
+            @import("gui.zig").DebugDraw(self.bounds);
         }
     }
 

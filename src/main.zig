@@ -15,6 +15,7 @@ var Button:     button  = undefined;
 var ButtonText: button  = undefined;
 var Slider:     slider  = undefined;
 var Switch:     switch_ = undefined;
+var Switch2:    switch_ = undefined;
 
 
 pub fn main() !void {
@@ -64,6 +65,11 @@ pub fn main() !void {
         &Gui,
     );
 
+    Switch2 = switch_.New(
+        c.Rectangle{.x = 91, .y = 230, .width = 52, .height = 30},
+        &Gui,
+    );
+
     while (!c.WindowShouldClose()) {
         if (c.IsWindowResized()) {
             WindowWidth = @floatFromInt(c.GetScreenWidth());
@@ -79,6 +85,7 @@ pub fn main() !void {
         ButtonText.Update();
         Slider.Update();
         Switch.Update();
+        Switch2.Update();
 
         c.BeginDrawing();
         c.ClearBackground(theme.ColorSurfaceLow);
@@ -101,6 +108,7 @@ pub fn main() !void {
         c.DrawRectangleRoundedLinesEx(toggle_switch_container, 0.1, 5, 2, theme.ColorSurfaceHigh);
         c.DrawText("Switches", 25, 200, 20, theme.ColorForeground);
         Switch.Draw();
+        Switch2.Draw();
 
         c.EndDrawing();
     }

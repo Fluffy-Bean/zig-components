@@ -1,3 +1,5 @@
+const c = @import("../c.zig").c;
+
 pub const Gui = struct {
     locked: bool,
     debug: bool,
@@ -29,3 +31,13 @@ pub const Gui = struct {
         self._lock_holder = null;
     }
 };
+
+pub fn DebugDraw(bounds: c.Rectangle) void {
+    c.DrawRectangle(
+        @intFromFloat(bounds.x - 4),
+        @intFromFloat(bounds.y - 4),
+        @intFromFloat(bounds.width + 8),
+        @intFromFloat(bounds.height + 8),
+        c.Fade(c.GREEN, 0.1),
+    );
+}
