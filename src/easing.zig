@@ -11,52 +11,56 @@ pub const Eases = enum {
 };
 
 pub const Animate = struct {
-    start: f32,
-    end: f32,
-    length: f32,
-
-    ease: Eases,
-
-    progress: f32,
+    progress:  f32,
     animating: bool,
 
-    _time: f32,
+    _start:  f32,
+    _end:    f32,
+    _length: f32,
+    _ease:   Eases,
+    _time:   f32,
 
-    pub fn new(start: f32, end: f32, length: f32, ease: Eases) Animate {
+    pub fn New(
+        start:  f32,
+        end:    f32,
+        length: f32,
+        ease:   Eases,
+    ) Animate {
         return Animate{
-            .start = start,
-            .end = end,
-            .length = length,
-
-            ._time = 0,
             .progress = 0,
             .animating = true,
 
-            .ease = ease,
+            ._start = start,
+            ._end = end,
+            ._length = length,
+            ._ease = ease,
+            ._time = 0,
         };
     }
 
-    pub fn update(self: *Animate) void {
+    pub fn Update(
+        self: *Animate,
+    ) void {
         self._time += c.GetFrameTime();
 
-        self.progress = switch (self.ease) {
-            .linearIn    => easeLinear(self.start, self.end, self._time / self.length),
-            .linearOut   => easeLinearIn(self.start, self.end, self._time / self.length),
-            .linearInOut => easeLinearOut(self.start, self.end, self._time / self.length),
-            .sineIn      => easeLinearInOut(self.start, self.end, self._time / self.length),
-            .sineOut     => easeSineIn(self.start, self.end, self._time / self.length),
-            .sineInOut   => easeSineOut(self.start, self.end, self._time / self.length),
-            .circIn      => easeSineInOut(self.start, self.end, self._time / self.length),
-            .circOut     => easeCircIn(self.start, self.end, self._time / self.length),
-            .cubicIn     => easeCircOut(self.start, self.end, self._time / self.length),
-            .cubicOut    => easeCubicIn(self.start, self.end, self._time / self.length),
-            .quadIn      => easeCubicOut(self.start, self.end, self._time / self.length),
-            .quadOut     => easeQuadIn(self.start, self.end, self._time / self.length),
-            .expoIn      => easeQuadOut(self.start, self.end, self._time / self.length),
-            .expoOut     => easeExpoIn(self.start, self.end, self._time / self.length),
+        self.progress = switch (self._ease) {
+            .linearIn    => easeLinear(self._start, self._end, self._time / self._length),
+            .linearOut   => easeLinearIn(self._start, self._end, self._time / self._length),
+            .linearInOut => easeLinearOut(self._start, self._end, self._time / self._length),
+            .sineIn      => easeLinearInOut(self._start, self._end, self._time / self._length),
+            .sineOut     => easeSineIn(self._start, self._end, self._time / self._length),
+            .sineInOut   => easeSineOut(self._start, self._end, self._time / self._length),
+            .circIn      => easeSineInOut(self._start, self._end, self._time / self._length),
+            .circOut     => easeCircIn(self._start, self._end, self._time / self._length),
+            .cubicIn     => easeCircOut(self._start, self._end, self._time / self._length),
+            .cubicOut    => easeCubicIn(self._start, self._end, self._time / self._length),
+            .quadIn      => easeCubicOut(self._start, self._end, self._time / self._length),
+            .quadOut     => easeQuadIn(self._start, self._end, self._time / self._length),
+            .expoIn      => easeQuadOut(self._start, self._end, self._time / self._length),
+            .expoOut     => easeExpoIn(self._start, self._end, self._time / self._length),
         };
 
-        if (self._time >= self.length) self.animating = false;
+        if (self._time >= self._length) self.animating = false;
     }
 };
 
